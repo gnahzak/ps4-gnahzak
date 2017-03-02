@@ -1,4 +1,6 @@
-(* 
+open Orderedcoll
+
+(*
                          CS 51 Problem Set 4
                 Modules, Functors, and Data Structures
                              Spring 2017
@@ -42,7 +44,7 @@ So, for instance, we can say:
 type element = IntTree.elt
 
 (* And we can say: *)
-                 
+
 let f = IntTree.delete
 
 (* But we can't say:
@@ -80,7 +82,7 @@ invocation:
 ......................................................................*)
 let _ = IntTree.run_tests ()
 
-(* 
+(*
 ........................................................................
 REQUIRED TESTING:
 

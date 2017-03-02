@@ -1,4 +1,4 @@
-(* 
+(*
                          CS 51 Problem Set 4
                 Modules, Functors, and Priority Queues
              Ordered Collections and Binary Search Trees
@@ -8,9 +8,9 @@
 open Order
 
 (*======================================================================
-Section 1: Ordered collections 
+Section 1: Ordered collections
  *)
-   
+
 module type ORDERED_COLLECTION =
 sig
   exception Empty
@@ -46,7 +46,7 @@ sig
 
   (* Return a string of the given collection. *)
   val to_string : collection -> string
- 
+
   (* Run invariant checks on the implementation of this binary collection.
      May raise Assert_failure exception *)
   val run_tests : unit -> unit
@@ -89,19 +89,19 @@ module BinSTree (C : COMPARABLE)
        type C.t *)
     exception Empty
     exception NotFound
-    
+
     (* Grab the type of the tree from the module C that's passed in.
        This is the only place you explicitly need to use C.t; you
        should use elt everywhere else *)
     type elt = C.t
-     
+
     (* The type for a collection, a binary search tree *)
     type tree = Leaf | Branch of tree * elt list * tree
-    type collection = tree 
+    type collection = tree
 
     (* Representation of the empty collection *)
     let empty = Leaf
-    
+
     (*..................................................................
     insert -- Inserts an element x into the tree t.  The left subtree
     of a given node should only have "smaller" elements than that
@@ -109,11 +109,20 @@ module BinSTree (C : COMPARABLE)
     that "equal" elements should all be stored in a list. *The most
     recently inserted elements should be at the front of the list.*
     (This is important for later use in priority queues.)
-    
+
     Hint: Use C.compare. See delete for inspiration.
-    ..................................................................*)  
+    ..................................................................*)
     let rec insert (x : elt) (t : tree) : tree =
-      failwith "insert not implemented"
+      match t with
+      | Leaf -> Branch (Leaf, [x], Leaf)
+      | Branch (l, lst, r) ->
+        match lst with
+        | [] ->failwith "Invalid tree: empty list as node"
+        | hd::tl ->
+          match C.compare x hd with
+          | Less -> Branch (insert x l, lst, r)
+          | Greater -> Branch (l, lst, insert x r)
+          | Equal -> Branch (l, x::lst, r) ;;
 
     (*..................................................................
     search -- Returns true if the element x is in tree t, else false.
@@ -121,18 +130,27 @@ module BinSTree (C : COMPARABLE)
     necessarily mean that x itself is in the tree.
     ..................................................................*)
     let rec search (x : elt) (t : tree) : bool =
-      failwith "search not implemented"
+      match t with
+      | Leaf -> false
+      | Branch (l, lst, r) ->
+        match lst with
+        | [] -> failwith "Invalid tree: empty list as node"
+        | hd::tl ->
+          match C.compare x hd with
+          | Less -> search x l
+          | Greater -> search x r
+          | Equal -> List.fold_left (fun a h -> (h = x) || a) false lst ;;
 
     (* pull_min -- A useful function for removing the node with the
        minimum value from a binary tree, returning that node and the
        tree with that node removed.
-    
+
        The pull_min function is not defined in the signature
        ORDERED_COLLECTION.  When you're working on a structure that
        implements a signature like ORDERED_COLLECTION, you may write
        "helper" functions for your implementation (such as pull_min)
        that are not defined in the signature.
-    
+
        Note, however, that if a function foo *is* defined in a
        signature BAR, and you attempt to make a structure satisfying
        the signature BAR, then you *must* define the function foo in
@@ -146,8 +164,8 @@ module BinSTree (C : COMPARABLE)
       | Leaf -> raise Empty
       | Branch (Leaf, v, r) -> (v, r)
       | Branch (l, v, r) -> let min, t' = pull_min l in
-                            (min, Branch (t', v, r))
-                
+                            (min, Branch (t', v, r)) ;;
+
     (* delete -- Removes an element from the tree. If multiple
        elements are in the list, removes the one that was inserted
        first. *)
@@ -171,8 +189,8 @@ module BinSTree (C : COMPARABLE)
                   match l, r with
                   | Leaf, _ -> r
                   | _, Leaf -> l
-                  | _ -> let v, r' = pull_min r in Branch (l,v,r')
-    
+                  | _ -> let v, r' = pull_min r in Branch (l,v,r') ;;
+
     (*..................................................................
     get_min -- Returns the minimum value of the tree t. If
     there are multiple minimum values, it should return the one that
@@ -184,23 +202,40 @@ module BinSTree (C : COMPARABLE)
     comparison function (like IntStringCompare).
     ..................................................................*)
     let getmin (t : tree) : elt =
-      failwith "getmin not implemented"
+      let (ls, _) = pull_min t in
+      let rec lastEl (l : 'a list) : 'a =
+        match l with
+        | [] -> failwith "Invalid tree: empty list as node"
+        | [a] -> a
+        | hd :: tl -> lastEl tl in
+      lastEl ls ;;
 
     (*..................................................................
     getmax -- Returns the maximum value of the tree t. Similarly should
-    return the last element in the matching list. 
+    return the last element in the matching list.
 
     The exception "Empty", defined within this module, might come
     in handy.
-    ..................................................................*)  
+    ..................................................................*)
     let rec getmax (t : tree) : elt =
-      failwith "getmax not implemented"
+      let rec list_max (q : tree) : elt list =
+        match q with
+        | Leaf -> raise Empty
+        | Branch (l, v, Leaf) -> v
+        | Branch (l, v, r) -> list_max r in
+      let ls = list_max t in
+      let rec lastEl (l : 'a list) : 'a =
+        match l with
+        | [] -> failwith "Invalid tree: empty list as node"
+        | [a] -> a
+        | hd :: tl -> lastEl tl in
+      lastEl ls ;;
 
     (* to_string -- Generates a string representation of a binary
        search tree, useful for testing! *)
-    let to_string (t: tree) = 
+    let to_string (t: tree) =
       let list_to_string (lst: 'a list) =
-        match lst with 
+        match lst with
         | [] -> "[]"
         | [hd] -> "[" ^ (C.to_string hd) ^ "]"
         | hd :: tl -> "[" ^ List.fold_left
@@ -209,8 +244,8 @@ module BinSTree (C : COMPARABLE)
             ^ (C.to_string b))
             (C.to_string hd) tl ^ "]"
       in
-      let rec to_string' (t: tree) = 
-        match t with 
+      let rec to_string' (t: tree) =
+        match t with
         | Leaf -> "Leaf"
         | Branch (l, m, r) ->
                  "Branch (" ^ (to_string' l) ^ ", "
@@ -233,7 +268,7 @@ module BinSTree (C : COMPARABLE)
        Branch(Leaf, [y], Leaf)));
       (* Can add further cases here *)
       ()
-  
+
     (* Insert a bunch of elements, and test to make sure that we
        can search for all of them. *)
     let test_search () =
@@ -258,7 +293,7 @@ module BinSTree (C : COMPARABLE)
           ) order (t, [])
       in
       List.iter (fun value -> assert (search value full_tree)) values_inserted
-    
+
     (* None of these tests are particularly exhaustive.  For instance,
        we could try varying the order in which we insert values, and
        making sure that the result is still correct.  So, the strategy
@@ -272,14 +307,14 @@ module BinSTree (C : COMPARABLE)
       let x3 = C.generate_lt x2 in
       let x4 = C.generate_lt x3 in
       assert (getmax (insert x4 (insert x3 (insert x2 (insert x empty)))) = x)
-       
+
     let test_getmin () =
       let x = C.generate () in
       let x2 = C.generate_gt x in
       let x3 = C.generate_gt x2 in
       let x4 = C.generate_gt x3 in
       assert (getmin (insert x2 (insert x4 (insert x (insert x3 empty)))) = x)
-       
+
     let test_delete () =
       let x = C.generate () in
       let x2 = C.generate_lt x in
@@ -287,7 +322,7 @@ module BinSTree (C : COMPARABLE)
       let x4 = C.generate_lt x3 in
       let after_ins = insert x4 (insert x3 (insert x2 (insert x empty))) in
       assert (delete x (delete x4 (delete x3 (delete x2 after_ins))) = empty)
-       
+
     let run_tests () =
       test_insert ();
       test_search ();
@@ -295,7 +330,7 @@ module BinSTree (C : COMPARABLE)
       test_getmin ();
       test_delete ();
       ()
-  
+
   end
 
 (* Here is how you would define an integer binary search tree using
@@ -304,13 +339,13 @@ argument.  You should write tests using the IntTree module (or you can
 give the module a different type), and you should use this call to a
 functor as an example for how to test modules further down in the
 pset. *)
-    
+
 module IntTree = BinSTree(IntCompare)
-       
+
 (* Please read the entirety of "tests.ml" for an explanation of how
 testing works. *)
 
-                         
+
 (*======================================================================
 Time estimate
 
@@ -320,4 +355,4 @@ on average, not in total).  We care about your responses and will use
 them to help guide us in creating future assignments.
 ......................................................................*)
 
-let minutes_spent_on_part () : int = failwith "not provided" ;;
+let minutes_spent_on_part () : int = 150 ;;

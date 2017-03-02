@@ -78,16 +78,25 @@ module ListQueue(C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
     type queue = elt list
 
     let empty : queue =
-      failwith "ListQueue empty not implemented"
+      [] ;;
 
     let is_empty (q : queue) : bool =
-      failwith "ListQueue is_empty not implemented"
+      q = [] ;;
 
-    let add (e : elt) (q : queue) : queue =
-      failwith "ListQueue add not implemented"
+    (* Places in the correct order, after any elements of equal value
+    such that the first element of some value is the first one placed*)
+    let rec add (e : elt) (q : queue) : queue =
+      match q with
+      | [] -> [e]
+      | h :: t ->
+        if C.compare e h = Less then e :: q
+        else h :: (add e t) ;;
 
+    (* If the queue is not empty, return the first element *)
     let take (q : queue) : elt * queue =
-      failwith "ListQueue take not implemented"
+      match q with
+      | [] -> raise QueueEmpty
+      | h :: t -> (h, t) ;;
 
     let run_tests () =
       failwith "ListQueue run_tests not implemented"
@@ -118,8 +127,6 @@ code. That way you'll be able to submit the problem set so that it
 compiles cleanly.
 ......................................................................*)
 
-(* You'll want to uncomment this before working on this section! *)
-(*
 module TreeQueue (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
   struct
     exception QueueEmpty
@@ -129,9 +136,33 @@ module TreeQueue (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
     module T = (BinSTree(C) : (ORDERED_COLLECTION with type elt = C.t))
 
     (* Implement the remainder of the module. *)
+    type elt = C.t
+    type queue = T.collection
 
+    let empty : queue =
+      T.empty ;;
+
+    let is_empty (q : queue) : bool =
+      q = T.empty ;;
+
+    (* Places before any elements of equal value, such that the
+    first element added is the last in an Equal list *)
+    let add (e : elt) (q : queue) : queue =
+      T.insert e q ;;
+
+    (* If the queue is not empty, return the last element in
+    a list that compare as Equal *)
+    let rec take (q : queue) : elt * queue =
+      let e = T.getmin q in
+      (e, T.delete e q) ;;
+
+    let run_tests () =
+      failwith "ListQueue run_tests not implemented"
+
+    (* IMPORTANT: Don't change the implementation of to_string. *)
+    let to_string (q: queue) : string =
+      T.to_string q ;;
   end
- *)
 
 (*......................................................................
 Problem 4: Implementing BinaryHeap
@@ -165,7 +196,7 @@ tree, the tree may intermittently not satisfy the order invariant. If
 so, you *must* fix the tree before returning it to the user.  Fill in
 the rest of the module below!
 ......................................................................*)
-   
+
 module BinaryHeap (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
   struct
 
@@ -240,9 +271,9 @@ module BinaryHeap (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
                   | Equal | Greater -> TwoBranch (Even, e1, Leaf e2, Leaf e)
                   | Less -> TwoBranch (Even, e, Leaf e2, Leaf e1))
 
-        (* 
+        (*
         If the tree was even, then it will become an odd tree
-        (and the element is inserted to the left 
+        (and the element is inserted to the left
         *)
         | TwoBranch(Even, e1, t1, t2) ->
                  (match C.compare e e1 with
@@ -271,7 +302,10 @@ module BinaryHeap (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
     pattern match)
     ..................................................................*)
     let get_top (t : tree) : elt =
-      failwith "BinaryHeap get_top not implemented"
+      match t with
+      | Leaf a -> a
+      | OneBranch (b, _c) -> b
+      | TwoBranch (_balance, el, _t1, _t2) -> el ;;
 
     (*..................................................................
     Takes a tree, and if the top node is greater than its children,
@@ -279,8 +313,29 @@ module BinaryHeap (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
     greater than its children, then you must (recursively) fix this
     tree too.
     ..................................................................*)
-    let fix (t : tree) : tree =
-      failwith "BinaryHeap fix not implemented"
+    let rec fix (t : tree) : tree =
+      match t with
+      | Leaf _ -> t
+      | OneBranch (b, c) -> if b > c then OneBranch (c, b) else t
+      | TwoBranch (balance, h, t1, t2) ->
+        (* if only the top of one branch is smaller, push it there
+        if both are smaller, push the node to the right branch unless the top
+        of the left branch is strictly smaller *)
+        let (h1, h2) = (get_top t1, get_top t2) in
+        if h <= h1 && h <= h2 then t
+        else
+          let branch =
+            if ((h1 < h && h2 < h) && (h1 < h2)) || (h2 >= h) then t1
+            else t2 in
+          (* move the node to the appropriate branch *)
+          let newBranch =
+            match branch with
+            | Leaf _ -> Leaf h
+            | OneBranch (x, y) -> fix (OneBranch (h, y))
+            | TwoBranch (parity, h', t1', t2') ->
+                fix(TwoBranch (parity, h, t1', t2')) in
+          if branch = t1 then TwoBranch (balance, h1, newBranch, t2)
+          else TwoBranch (balance, h2, t1, newBranch) ;;
 
     let extract_tree (q : queue) : tree =
       match q with
@@ -302,14 +357,35 @@ module BinaryHeap (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
     brought down into a new node at the bottom of the tree. *This* is
     the node that we want you to return.
     ..................................................................*)
-    let get_last (t : tree) : elt * queue =
-      failwith "BinaryHeap get_last not implemented"
+
+    (* Find the right-most node in the bottom level*)
+    let rec get_last (t : tree) : elt * queue =
+      match t with
+      | Leaf a -> (a, Empty)
+      | OneBranch (x, y) -> (y, Tree (Leaf x))
+      | TwoBranch (balance, h, t1, t2) ->
+        (* if odd, go to the left. if even, go to the right *)
+        if balance = Odd then
+          let (e, q) = get_last t1 in
+          (e, Tree (TwoBranch (Even, h, extract_tree q, t2)))
+        else
+          let (e, q) = get_last t2 in
+          (e, Tree (TwoBranch (Odd, h, t1, extract_tree q))) ;;
+
 
     (*..................................................................
     Implements the algorithm described in the writeup. You must finish
     this implementation, as well as the implementations of get_last
     and fix, which take uses.
     ..................................................................*)
+
+    (* Determines the size of a tree *)
+    let rec size (t : tree) : int =
+      match t with
+      | Leaf _ -> 1
+      | OneBranch _ -> 2
+      | TwoBranch (_, _, t1, t2) -> 1 + (size t1) + (size t2)
+
     let take (q : queue) : elt * queue =
       match extract_tree q with
       (* If the tree is just a Leaf, then return the value of that leaf, and the
@@ -333,7 +409,10 @@ module BinaryHeap (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
           | Empty -> (e, Tree (fix (OneBranch (last, get_top t1))))
           | Tree t2' -> (e, Tree (fix (TwoBranch (Odd, last, t1, t2')))))
           (* Implement the odd case! *)
-          | TwoBranch (Odd, _e, _t1, _t2) -> failwith "BinaryHeap take incomplete"
+      | TwoBranch (Odd, e, t1, t2) ->
+          (* remove the last node from the left side *)
+          let (last, q1') = get_last t1 in
+          (e, Tree (fix (TwoBranch (Even, last, extract_tree q1', t2)))) ;;
 
     let run_tests () = failwith "BinaryHeap run_tests not implemented"
   end
