@@ -118,11 +118,11 @@ module BinSTree (C : COMPARABLE)
       | Branch (l, lst, r) ->
         match lst with
         | [] ->failwith "Invalid tree: empty list as node"
-        | hd::tl ->
+        | hd :: tl ->
           match C.compare x hd with
           | Less -> Branch (insert x l, lst, r)
           | Greater -> Branch (l, lst, insert x r)
-          | Equal -> Branch (l, x::lst, r) ;;
+          | Equal -> Branch (l, x :: lst, r) ;;
 
     (*..................................................................
     search -- Returns true if the element x is in tree t, else false.

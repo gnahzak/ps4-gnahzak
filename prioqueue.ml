@@ -190,15 +190,16 @@ module TreeQueue (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
       let a2 = C.generate () in
       let bst1 = add a2 (add a1 empty) in
       assert (T.to_string bst1 = "Branch (Leaf, [" ^ C.to_string(a2) ^ "; " ^
-              C.to_string(a1) ^ "], Leaf)");
+                                 C.to_string(a1) ^ "], Leaf)");
 
       let b = C.generate_lt a1 in
       let c = C.generate () in
       let d = C.generate_gt a2 in
       let bst2 = add c (add d (add b empty)) in
       assert (T.to_string bst2 = "Branch (Leaf, [" ^ C.to_string(b) ^
-              "], Branch (Branch (Leaf, [" ^ C.to_string(c) ^ "], Leaf), [" ^
-              C.to_string(d) ^ "], Leaf))");
+                                 "], Branch (Branch (Leaf, [" ^
+                                 C.to_string(c) ^ "], Leaf), [" ^
+                                 C.to_string(d) ^ "], Leaf))");
 
       let (p1, q1) = take bst1 in
       assert (p1 = a1);
@@ -208,7 +209,7 @@ module TreeQueue (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
       let (p2, q2) = take bst2 in
       assert (p2 = b);
       assert (T.to_string q2 = "Branch (Branch (Leaf, [" ^ C.to_string(c) ^
-              "], Leaf), [" ^ C.to_string(d) ^ "], Leaf)")
+                               "], Leaf), [" ^ C.to_string(d) ^ "], Leaf)")
 
     let run_tests () =
       test_empty ();
@@ -387,9 +388,9 @@ module BinaryHeap (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
           let newBranch =
             match branch with
             | Leaf _ -> Leaf h
-            | OneBranch (x, y) -> fix (OneBranch (h, y))
-            | TwoBranch (parity, h', t1', t2') ->
-                fix(TwoBranch (parity, h, t1', t2')) in
+            | OneBranch (_x, y) -> fix (OneBranch (h, y))
+            | TwoBranch (parity, _h', t1', t2') ->
+              fix(TwoBranch (parity, h, t1', t2')) in
           if branch = t1 then TwoBranch (balance, h1, newBranch, t2)
           else TwoBranch (balance, h2, t1, newBranch) ;;
 

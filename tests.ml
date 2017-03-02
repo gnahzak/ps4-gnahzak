@@ -94,6 +94,22 @@ let _ = Lq.run_tests ()
 let _ = Tq.run_tests ()
 let _ = Bh.run_tests ()
 
+(* Testing using sort functions *)
+let sort_tests () =
+  assert (heapsort [] = []);
+  assert (treesort [] = []);
+  assert (selectionsort [] = []);
+
+  assert (heapsort [2] = [2]);
+  assert (treesort [3] = [3]);
+  assert (selectionsort [-5] = [-5]);
+
+  assert (heapsort [-2; 0; -5; 6; 3; 3; 3; 0] = [-5; -2; 0; 0; 3; 3; 3; 6]);
+  assert (treesort [-2; 0; -5; 6; 3; 3; 3; 0] = [-5; -2; 0; 0; 3; 3; 3; 6]);
+  assert (selectionsort [-2; 0; -5; 6; 3; 3; 0] = [-5; -2; 0; 0; 3; 3; 6])
+
+let _ = sort_tests ()
+
 (*
 ........................................................................
 REQUIRED TESTING:
