@@ -98,8 +98,28 @@ module ListQueue(C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
       | [] -> raise QueueEmpty
       | h :: t -> (h, t) ;;
 
+    let test_empty () =
+      assert (empty = []);
+      assert (is_empty [] = true);
+      assert (is_empty (add (C.generate ()) empty) = false)
+
+    let test_add_take () =
+      let a1 = C.generate () in
+      let a2 = C.generate () in
+      let b = C.generate_lt a1 in
+      let c = C.generate_gt a2 in
+      let ls = add a2 (add a1 (add c (add b empty))) in
+      assert (ls = [b; a1; a2; c]);
+
+      assert (take ls = (b, [a1; a2; c]));
+      let x = C.generate() in
+      let short = add x empty in
+      assert (take short = (x, []))
+
     let run_tests () =
-      failwith "ListQueue run_tests not implemented"
+      test_empty ();
+      test_add_take ();
+      ()
 
     (* IMPORTANT: Don't change the implementation of to_string. *)
     let to_string (q: queue) : string =
@@ -152,12 +172,48 @@ module TreeQueue (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
 
     (* If the queue is not empty, return the last element in
     a list that compare as Equal *)
-    let rec take (q : queue) : elt * queue =
+    let take (q : queue) : elt * queue =
       let e = T.getmin q in
       (e, T.delete e q) ;;
 
+    let test_empty () =
+      assert (empty = T.empty);
+      assert (is_empty T.empty = true);
+      assert (is_empty (add (C.generate ()) empty) = false)
+
+    let test_add_take () =
+      let a = C.generate () in
+      assert (T.to_string (add a empty) = "Branch (Leaf, [" ^ C.to_string(a) ^
+                                          "], Leaf)");
+
+      let a1 = C.generate () in
+      let a2 = C.generate () in
+      let bst1 = add a2 (add a1 empty) in
+      assert (T.to_string bst1 = "Branch (Leaf, [" ^ C.to_string(a2) ^ "; " ^
+              C.to_string(a1) ^ "], Leaf)");
+
+      let b = C.generate_lt a1 in
+      let c = C.generate () in
+      let d = C.generate_gt a2 in
+      let bst2 = add c (add d (add b empty)) in
+      assert (T.to_string bst2 = "Branch (Leaf, [" ^ C.to_string(b) ^
+              "], Branch (Branch (Leaf, [" ^ C.to_string(c) ^ "], Leaf), [" ^
+              C.to_string(d) ^ "], Leaf))");
+
+      let (p1, q1) = take bst1 in
+      assert (p1 = a1);
+      assert (T.to_string q1 = "Branch (Leaf, [" ^ C.to_string(a2) ^
+                               "], Leaf)");
+
+      let (p2, q2) = take bst2 in
+      assert (p2 = b);
+      assert (T.to_string q2 = "Branch (Branch (Leaf, [" ^ C.to_string(c) ^
+              "], Leaf), [" ^ C.to_string(d) ^ "], Leaf)")
+
     let run_tests () =
-      failwith "ListQueue run_tests not implemented"
+      test_empty ();
+      test_add_take ();
+      ()
 
     (* IMPORTANT: Don't change the implementation of to_string. *)
     let to_string (q: queue) : string =
@@ -370,8 +426,8 @@ module BinaryHeap (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
           (e, Tree (TwoBranch (Even, h, extract_tree q, t2)))
         else
           let (e, q) = get_last t2 in
-          (e, Tree (TwoBranch (Odd, h, t1, extract_tree q))) ;;
-
+          if q = Empty then (e, Tree (OneBranch (h, get_top t1)))
+          else (e, Tree (TwoBranch (Odd, h, t1, extract_tree q))) ;;
 
     (*..................................................................
     Implements the algorithm described in the writeup. You must finish
@@ -414,7 +470,61 @@ module BinaryHeap (C : COMPARABLE) : (PRIOQUEUE with type elt = C.t) =
           let (last, q1') = get_last t1 in
           (e, Tree (fix (TwoBranch (Even, last, extract_tree q1', t2)))) ;;
 
-    let run_tests () = failwith "BinaryHeap run_tests not implemented"
+    let test_fix () =
+      let h = C.generate () in
+      let h1 = C.generate_lt h in
+      let h2 = C.generate_lt (C.generate_lt h) in
+      let n1 = C.generate_gt h in
+      let n2 = C.generate_gt h in
+      let t1 = OneBranch (h1, n1) in
+      let t2 = OneBranch (h2, n2) in
+      let t = TwoBranch(Even, h, t1, t2) in
+      assert (fix t = TwoBranch(Even, h2, t1, OneBranch(h, n2)));
+
+      let a = C.generate () in
+      assert (fix (Leaf a) = Leaf a)
+
+    let test_take () =
+      (* a = 1, b = -1, c = 0, d = 2*)
+      let a = C.generate_gt (C.generate ()) in
+      assert (take (Tree (Leaf a)) = (a, Empty));
+
+      let b = C.generate_lt (C.generate ()) in
+      let q = add a (add b (Empty)) in
+      assert (take q = (b, Tree (Leaf a)));
+
+      let c = C.generate () in
+      let d = C.generate_gt a in
+      let q1 = add c (add d (add b (add a Empty))) in
+      assert (take q1 = (b, Tree (TwoBranch (Even, c, Leaf a, Leaf d))))
+
+    let test_gettop () =
+      let a = C.generate () in
+      let b = C.generate_gt a in
+      let c = C.generate_lt a in
+      assert (get_top (Leaf a) = a);
+      assert (get_top (OneBranch (a, b)) = a);
+      assert (get_top (TwoBranch (Even, c, Leaf a, Leaf b)) = c)
+
+    let test_getlast () =
+      (* a = 0, b = 1, c = -1, d = 2, e = -2, f = 3*)
+      let a = C.generate () in
+      let b = C.generate_gt a in
+      let c = C.generate_lt a in
+      let d = C.generate_gt b in
+      let e = C.generate_lt c in
+      let f = C.generate_gt d in
+      let Tree t = add a (add b (add c (add d (add e (add f Empty))))) in
+      let (p, Tree q) = get_last t in
+      assert (p = a);
+      assert (q = TwoBranch (Even, e, OneBranch (c, f), OneBranch (b, d)))
+
+    let run_tests () =
+      test_fix ();
+      test_take ();
+      test_gettop ();
+      test_getlast ();
+      ()
   end
 
 (*......................................................................
@@ -444,22 +554,16 @@ module IntListQueue = (ListQueue(IntCompare) :
 module IntHeapQueue = (BinaryHeap(IntCompare) :
                          PRIOQUEUE with type elt = IntCompare.t)
 
-(* Uncomment this once your TreeQueue implementation is complete
-
 module IntTreeQueue = (TreeQueue(IntCompare) :
                         PRIOQUEUE with type elt = IntCompare.t)
-
-*)
 
 (* Store the whole modules in these variables *)
 let list_module = (module IntListQueue :
                      PRIOQUEUE with type elt = IntCompare.t)
 let heap_module = (module IntHeapQueue :
                      PRIOQUEUE with type elt = IntCompare.t)
-(*
 let tree_module = (module IntTreeQueue :
                      PRIOQUEUE with type elt = IntCompare.t)
-*)
 
 (* Implementing sort using generic priority queues. *)
 let sort (m : (module PRIOQUEUE with type elt=IntCompare.t)) (lst : int list) =
@@ -484,9 +588,7 @@ let heapsort = sort heap_module ;;
    implementation is *almost* equivalent to treesort; a real treesort
    relies on self-balancing binary search trees *)
 
-(*
 let treesort = sort tree_module ;;
-*)
 
 (* Sorting with a priority queue with an underlying unordered list
    implementation is equivalent to selection sort! If your
@@ -537,4 +639,4 @@ on average, not in total).  We care about your responses and will use
 them to help guide us in creating future assignments.
 ......................................................................*)
 
-let minutes_spent_on_part () : int = failwith "not provided" ;;
+let minutes_spent_on_part () : int = 240 ;;

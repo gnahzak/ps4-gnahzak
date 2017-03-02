@@ -1,4 +1,6 @@
+open Order
 open Orderedcoll
+open Prioqueue
 
 (*
                          CS 51 Problem Set 4
@@ -81,6 +83,16 @@ signature.  So, we can run our tests on IntTree with the following
 invocation:
 ......................................................................*)
 let _ = IntTree.run_tests ()
+
+module IntStringTree = BinSTree(IntStringCompare)
+let _ = IntStringTree.run_tests ()
+
+module Lq = ListQueue(IntStringCompare)
+module Tq = TreeQueue(IntStringCompare)
+module Bh = BinaryHeap(IntCompare)
+let _ = Lq.run_tests ()
+let _ = Tq.run_tests ()
+let _ = Bh.run_tests ()
 
 (*
 ........................................................................

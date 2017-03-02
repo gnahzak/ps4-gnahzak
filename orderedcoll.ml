@@ -217,7 +217,7 @@ module BinSTree (C : COMPARABLE)
     The exception "Empty", defined within this module, might come
     in handy.
     ..................................................................*)
-    let rec getmax (t : tree) : elt =
+    let getmax (t : tree) : elt =
       let rec list_max (q : tree) : elt list =
         match q with
         | Leaf -> raise Empty
@@ -266,8 +266,24 @@ module BinSTree (C : COMPARABLE)
       let t = insert z t in
       assert (t = Branch(Branch(Leaf, [z], Leaf),[x;x],
        Branch(Leaf, [y], Leaf)));
-      (* Can add further cases here *)
-      ()
+
+      let a = C.generate () in
+      let b = C.generate_lt a in
+      let c = C.generate_gt b in
+      let t = insert a empty in
+      let t = insert b t in
+      let t = insert c t in
+      assert (t = Branch( Branch(Leaf, [b], Leaf), [c; a], Leaf) &&
+              C.compare c a = Equal);
+
+      let z = C.generate () in
+      let a = C.generate_gt (C.generate_gt z) in
+      let b = C.generate_lt (C.generate_lt z) in
+      let t = insert a empty in
+      let t = insert b t in
+      let t = insert z t in
+      assert (t = Branch( Branch(Leaf, [b], Branch(Leaf, [z], Leaf)),
+              [a], Leaf))
 
     (* Insert a bunch of elements, and test to make sure that we
        can search for all of them. *)
@@ -294,6 +310,11 @@ module BinSTree (C : COMPARABLE)
       in
       List.iter (fun value -> assert (search value full_tree)) values_inserted
 
+    let test_search2 () =
+      let t = empty in
+      let y = C.generate () in
+      assert (search y t = false)
+
     (* None of these tests are particularly exhaustive.  For instance,
        we could try varying the order in which we insert values, and
        making sure that the result is still correct.  So, the strategy
@@ -306,14 +327,30 @@ module BinSTree (C : COMPARABLE)
       let x2 = C.generate_lt x in
       let x3 = C.generate_lt x2 in
       let x4 = C.generate_lt x3 in
-      assert (getmax (insert x4 (insert x3 (insert x2 (insert x empty)))) = x)
+      assert (getmax (insert x4 (insert x3 (insert x2 (insert x empty)))) = x);
+
+      let a0 = C.generate () in
+      let a2 = C.generate_gt (C.generate_gt a0) in
+      let a_3 = C.generate_lt (C.generate_lt (C.generate_lt a0)) in
+      let a22 = C.generate_lt (C.generate_gt a2) in
+      let a3 = C.generate_gt a2 in
+      let t = insert a22 (insert a_3 (insert a3 (insert a2 (insert a0 empty))))
+      in assert (getmax t = a3)
 
     let test_getmin () =
       let x = C.generate () in
       let x2 = C.generate_gt x in
       let x3 = C.generate_gt x2 in
       let x4 = C.generate_gt x3 in
-      assert (getmin (insert x2 (insert x4 (insert x (insert x3 empty)))) = x)
+      assert (getmin (insert x2 (insert x4 (insert x (insert x3 empty)))) = x);
+
+      let a0 = C.generate () in
+      let a2 = C.generate_gt (C.generate_gt a0) in
+      let a_3 = C.generate_lt (C.generate_lt (C.generate_lt a0)) in
+      let a22 = C.generate_lt (C.generate_gt a2) in
+      let a3 = C.generate_gt a2 in
+      let t = insert a22 (insert a_3 (insert a3 (insert a2 (insert a0 empty))))
+      in assert (getmin t = a_3)
 
     let test_delete () =
       let x = C.generate () in
@@ -321,11 +358,20 @@ module BinSTree (C : COMPARABLE)
       let x3 = C.generate_lt x2 in
       let x4 = C.generate_lt x3 in
       let after_ins = insert x4 (insert x3 (insert x2 (insert x empty))) in
-      assert (delete x (delete x4 (delete x3 (delete x2 after_ins))) = empty)
+      assert (delete x (delete x4 (delete x3 (delete x2 after_ins))) = empty);
+
+      let x = C.generate () in
+      let x2 = C.generate_gt x in
+      let x3 = C.generate_gt x2 in
+      let x4 = C.generate_lt (C.generate_lt x) in
+      let after_ins = insert x3 (insert x (insert x2 (insert x empty))) in
+      assert (delete x (delete x3 (delete x2 after_ins)) =
+              Branch(Leaf, [x], Leaf))
 
     let run_tests () =
       test_insert ();
       test_search ();
+      test_search2 ();
       test_getmax ();
       test_getmin ();
       test_delete ();
